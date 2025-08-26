@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../partials/head', {title: title}) %>
+</head>
+<body>
+    <%- include('../partials/admin-sidebar') %>
+    
+    <div class="admin-container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Donation Details</h1>
+            <a href="/admin/donations" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Donations
+            </a>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Donation Information</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Amount:</strong> $<%= donation.amount.toLocaleString() %></p>
+                                <p><strong>Currency:</strong> <%= donation.currency %></p>
+                                <p><strong>Payment Method:</strong> <%= donation.paymentMethod %></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Status:</strong> 
+                                    <span class="badge bg-<%= 
+                                        donation.paymentStatus === 'completed' ? 'success' : 
+                                        donation.paymentStatus === 'pending' ? 'warning' : 'danger' 
+                                    %>">
+                                        <%= donation.paymentStatus %>
+                                    </span>
+                                </p>
+                                <p><strong>Date:</strong> <%= donation.createdAt.toLocaleDateString() %></p>
+                                <p><strong>Recurring:</strong> <%= donation.isRecurring ? 'Yes' : 'No' %></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Donor Information</h5>
+                        <p><strong>Name:</strong> <%= donation.donor.name %></p>
+                        <p><strong>Email:</strong> <%= donation.donor.email %></p>
+                        <% if (donation.donor.phone) { %>
+                            <p><strong>Phone:</strong> <%= donation.donor.phone %></p>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Update Status</h5>
+                        <form action="/admin/donations/status/<%= donation._id %>" method="POST">
+                            <div class="mb-3">
+                                <label for="status" class="form-label">Payment Status</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="pending" <%= donation.paymentStatus === 'pending' ? 'selected' : '' %>>Pending</option>
+                                    <option value="completed" <%= donation.paymentStatus === 'completed' ? 'selected' : '' %>>Completed</option>
+                                    <option value="failed" <%= donation.paymentStatus === 'failed' ? 'selected' : '' %>>Failed</option>
+                                    <option value="refunded" <%= donation.paymentStatus === 'refunded' ? 'selected' : '' %>>Refunded</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Update Status</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <%- include('../partials/scripts') %>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<div class="admin-sidebar">
+    <div class="sidebar-header">
+        <div class="text-center">
+            <img src="/images/logo.png" alt="Gelelcha Charity" height="40">
+            <h5 class="mt-2 mb-0">Admin Panel</h5>
+            <small class="text-muted">Welcome, <%= adminName %></small>
+        </div>
+    </div>
+    <div class="nav flex-column">
+        <a href="/admin/dashboard" class="nav-link <%= currentPage === 'dashboard' ? 'active' : '' %>">
+            <i class="fas fa-tachometer-alt"></i> Dashboard
+        </a>
+        <a href="/admin/projects" class="nav-link <%= currentPage === 'projects' ? 'active' : '' %>">
+            <i class="fas fa-project-diagram"></i> Projects
+        </a>
+        <a href="/admin/donations" class="nav-link <%= currentPage === 'donations' ? 'active' : '' %>">
+            <i class="fas fa-donate"></i> Donations
+        </a>
+        <a href="/admin/volunteers" class="nav-link <%= currentPage === 'volunteers' ? 'active' : '' %>">
+            <i class="fas fa-hands-helping"></i> Volunteers
+        </a>
+        <a href="/admin/blog" class="nav-link <%= currentPage === 'blog' ? 'active' : '' %>">
+            <i class="fas fa-blog"></i> Blog
+        </a>
+        <a href="/admin/contacts" class="nav-link <%= currentPage === 'contacts' ? 'active' : '' %>">
+            <i class="fas fa-envelope"></i> Messages
+        </a>
+        <a href="/admin/logout" class="nav-link">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
+    </div>
+</div>

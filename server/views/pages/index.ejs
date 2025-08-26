@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../partials/head', {title: title}) %>
+</head>
+<body>
+    <%- include('../partials/header') %>
+    
+    <!-- Hero Section -->
+    <section class="hero bg-primary text-white py-5">
+        <div class="container py-5">
+            <div class="row justify-content-center text-center">
+                <div class="col-lg-8">
+                    <h1 class="display-4 fw-bold mb-4">Transforming Lives Through Compassion</h1>
+                    <p class="lead mb-4">Gelelcha Charitable Organization is dedicated to creating sustainable change in communities through education, healthcare, and economic empowerment.</p>
+                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                        <a href="/donate" class="btn btn-light btn-lg px-4 py-2">Donate Now</a>
+                        <a href="/volunteer" class="btn btn-outline-light btn-lg px-4 py-2">Become a Volunteer</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Impact Stats -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="row text-center">
+                <div class="col-md-3 col-6 mb-4">
+                    <div class="p-3">
+                        <h2 class="text-primary fw-bold" data-count="25000">25,000+</h2>
+                        <p class="text-muted">Lives Impacted</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-4">
+                    <div class="p-3">
+                        <h2 class="text-primary fw-bold" data-count="75">75+</h2>
+                        <p class="text-muted">Projects Completed</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-4">
+                    <div class="p-3">
+                        <h2 class="text-primary fw-bold" data-count="32">32</h2>
+                        <p class="text-muted">Communities Served</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-4">
+                    <div class="p-3">
+                        <h2 class="text-primary fw-bold" data-count="15">1</h2>
+                        <p class="text-muted">Years of Service</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+<!-- Featured Projects -->
+<section class="section bg-light">
+    <div class="container">
+        <h2 class="section-title">Our Featured Projects</h2>
+        <div class="row">
+            <% if (featuredProjects && featuredProjects.length > 0) { %>
+                <% featuredProjects.forEach(project => { %>
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="card h-100">
+                            <img src="/uploads/<%= project.image || 'default-project.jpg' %>" 
+                                 class="card-img-top" alt="<%= project.title %>"
+                                 style="height: 200px; object-fit: cover;">
+                            <div class="card-body">
+                                <h5 class="card-title"><%= project.title %></h5>
+                                <p class="card-text"><%= project.shortDescription %></p>
+                                <% if (project.targetAmount) { %>
+                                    <div class="progress mb-3">
+                                        <div class="progress-bar" role="progressbar" 
+                                            style="width: <%= Math.min(((project.raisedAmount || 0) / project.targetAmount * 100), 100) %>%" 
+                                            aria-valuenow="<%= project.raisedAmount || 0 %>" 
+                                            aria-valuemin="0" 
+                                            aria-valuemax="<%= project.targetAmount %>">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <span>$<%= (project.raisedAmount || 0).toLocaleString() %> raised</span>
+                                        <span><%= Math.min(Math.round((project.raisedAmount || 0) / project.targetAmount * 100), 100) %>%</span>
+                                    </div>
+                                <% } %>
+                                <a href="/projects/<%= project._id %>" class="btn btn-primary w-100">Learn More</a>
+                            </div>
+                        </div>
+                    </div>
+                <% }) %>
+            <% } else { %>
+                <div class="col-12 text-center">
+                    <div class="card">
+                        <div class="card-body py-5">
+                            <i class="fas fa-project-diagram fa-3x text-muted mb-3"></i>
+                            <h5>No Featured Projects Yet</h5>
+                            <p class="text-muted">Check back soon for our ongoing projects!</p>
+                            <a href="/projects" class="btn btn-outline-primary">View All Projects</a>
+                        </div>
+                    </div>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</section>
+
+    <!-- About Section -->
+    <section class="py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h2 class="fw-bold mb-4">About Gelelcha Charity</h2>
+                    <p class="lead mb-4">We are a non-profit organization dedicated to creating sustainable change in underserved communities through targeted interventions in education, healthcare, and economic empowerment.</p>
+                    <p>Since our establishment in 2024, we have been working tirelessly to improve the lives of vulnerable populations, focusing on children, women, and marginalized communities.</p>
+                    <a href="/about" class="btn btn-primary mt-3">Learn More About Us</a>
+                </div>
+                <div class="col-lg-6">
+                    <img src="/images/about.jpg" alt="About Gelelcha Charity" class="img-fluid rounded shadow">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="py-5 bg-primary text-white">
+        <div class="container text-center">
+            <h2 class="fw-bold mb-4">Make a Difference Today</h2>
+            <p class="lead mb-5">Your support can change lives. Whether through donations or volunteering, every contribution matters.</p>
+            <div class="row justify-content-center">
+                <div class="col-md-5 mb-4">
+                    <div class="card h-100 border-0 shadow">
+                        <div class="card-body p-5">
+                            <i class="fas fa-hand-holding-heart fa-3x text-primary mb-3"></i>
+                            <h3 class="h4">Donate</h3>
+                            <p>Your financial support helps us continue our vital work in communities that need it most.</p>
+                            <a href="/donate" class="btn btn-primary mt-3">Donate Now</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-5 mb-4">
+                    <div class="card h-100 border-0 shadow">
+                        <div class="card-body p-5">
+                            <i class="fas fa-hands-helping fa-3x text-primary mb-3"></i>
+                            <h3 class="h4">Volunteer</h3>
+                            <p>Join our team of dedicated volunteers and make a hands-on difference in people's lives.</p>
+                            <a href="/volunteer" class="btn btn-primary mt-3">Volunteer Today</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+<%- include('../partials/head', {title: title}) %>
+<%- include('../partials/footer') %>
+<%- include('../partials/scripts') %>
+    
+    <script>
+        // Simple counter animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const counters = document.querySelectorAll('[data-count]');
+            
+            counters.forEach(counter => {
+                const target = parseInt(counter.getAttribute('data-count'));
+                let count = 0;
+                const duration = 2000; // 2 seconds
+                const increment = target / (duration / 16); // 60fps
+                
+                const updateCount = () => {
+                    if (count < target) {
+                        count += increment;
+                        if (count > target) count = target;
+                        counter.textContent = Math.floor(count).toLocaleString();
+                        setTimeout(updateCount, 16);
+                    }
+                };
+                
+                updateCount();
+            });
+        });
+    </script>
+</body>
+</html>
