@@ -37,7 +37,10 @@
         <div class="card form-container">
             <div class="card-body">
                 <form action="<%= formAction %>" method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="_method" value="<%= formMethod %>">
+                    <!-- FIXED: Use proper method-override syntax -->
+                    <% if (formMethod === 'PUT') { %>
+                        <input type="hidden" name="_method" value="PUT">
+                    <% } %>
                     
                     <div class="mb-3">
                         <label for="title" class="form-label">Blog Title *</label>
@@ -50,7 +53,8 @@
                         <input type="file" class="form-control" id="image" name="image" accept="image/*">
                         <% if (blog && blog.image && blog.image !== 'default-blog.jpg') { %>
                             <div class="mt-2">
-                                <img src="/public/uploads/<%= blog.image %>" alt="Current image" width="100" class="img-thumbnail">
+                                <!-- FIXED: Changed from /public/uploads/ to /uploads/ -->
+                                <img src="/uploads/<%= blog.image %>" alt="Current image" width="100" class="img-thumbnail">
                                 <small class="text-muted">Current image</small>
                             </div>
                         <% } %>
@@ -62,8 +66,9 @@
                         <small class="text-muted">Max 50MB. Supported formats: MP4, MOV, AVI, etc.</small>
                         <% if (blog && blog.video) { %>
                             <div class="mt-2">
+                                <!-- FIXED: Changed from /public/uploads/ to /uploads/ -->
                                 <video width="200" controls class="rounded">
-                                    <source src="/public/uploads/<%= blog.video %>" type="video/mp4">
+                                    <source src="/uploads/<%= blog.video %>" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
                                 <small class="text-muted">Current video</small>

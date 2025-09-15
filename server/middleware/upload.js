@@ -1,15 +1,26 @@
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+
+// ✅ CORRECT UPLOADS DIRECTORY: NGO/public/uploads/ (not server/public/uploads/)
+const uploadsDir = path.join(__dirname, '../../public/uploads');
+if (!fs.existsSync(uploadsDir)) {
+  console.log('Creating uploads directory:', uploadsDir);
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+console.log('Multer configured to save files to:', uploadsDir);
 
 // Configure storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'public/uploads/');
+    cb(null, uploadsDir); // Use the correct absolute path
   },
   filename: function (req, file, cb) {
     // Generate unique filename
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    const extension = path.extname(file.originalname);
+    cb(null, 'image-' + uniqueSuffix + extension);
   }
 });
 

@@ -36,8 +36,12 @@
 
         <div class="card form-container">
             <div class="card-body">
-                <form action="<%= formAction %>" method="POST">
-                    <input type="hidden" name="_method" value="<%= formMethod %>">
+                <!-- FIXED: Added enctype="multipart/form-data" for file uploads -->
+                <form action="<%= formAction %>" method="POST" enctype="multipart/form-data">
+                    <!-- FIXED: Use proper method-override syntax -->
+                    <% if (formMethod === 'PUT') { %>
+                        <input type="hidden" name="_method" value="PUT">
+                    <% } %>
                     
                     <div class="row">
                         <div class="col-md-6">
@@ -72,32 +76,31 @@
                                   rows="5" required><%= project ? project.description : '' %></textarea>
                     </div>
 
-                    <!-- Add this after the description field -->
-<div class="mb-3">
-    <label for="image" class="form-label">Project Image</label>
-    <input type="file" class="form-control" id="image" name="image" accept="image/*">
-    <% if (project && project.image) { %>
-        <div class="mt-2">
-            <img src="/uploads/<%= project.image %>" alt="Current image" width="100" class="img-thumbnail">
-            <small class="text-muted">Current image</small>
-        </div>
-    <% } %>
-</div>
-    <!-- Add this after the image field -->
-<div class="mb-3">
-    <label for="video" class="form-label">Project Video (Optional)</label>
-    <input type="file" class="form-control" id="video" name="video" accept="video/*">
-    <small class="text-muted">Max 50MB. Supported formats: MP4, MOV, AVI, etc.</small>
-    <% if (project && project.video) { %>
-        <div class="mt-2">
-            <video width="200" controls class="rounded">
-                <source src="/uploads/<%= project.video %>" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-            <small class="text-muted">Current video</small>
-        </div>
-    <% } %>
-</div>
+                    <div class="mb-3">
+                        <label for="image" class="form-label">Project Image</label>
+                        <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                        <% if (project && project.image) { %>
+                            <div class="mt-2">
+                                <img src="/uploads/<%= project.image %>" alt="Current image" width="100" class="img-thumbnail">
+                                <small class="text-muted">Current image</small>
+                            </div>
+                        <% } %>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="video" class="form-label">Project Video (Optional)</label>
+                        <input type="file" class="form-control" id="video" name="video" accept="video/*">
+                        <small class="text-muted">Max 50MB. Supported formats: MP4, MOV, AVI, etc.</small>
+                        <% if (project && project.video) { %>
+                            <div class="mt-2">
+                                <video width="200" controls class="rounded">
+                                    <source src="/uploads/<%= project.video %>" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                                <small class="text-muted">Current video</small>
+                            </div>
+                        <% } %>
+                    </div>
 
                     <div class="row">
                         <div class="col-md-6">

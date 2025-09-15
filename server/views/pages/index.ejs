@@ -63,13 +63,45 @@
                 <% featuredProjects.forEach(project => { %>
                     <div class="col-lg-4 col-md-6 mb-4">
                         <div class="card h-100">
-                            <img src="/uploads/<%= project.image || 'default-project.jpg' %>" 
-                                 class="card-img-top" alt="<%= project.title %>"
-                                 style="height: 200px; object-fit: cover;">
+                            <!-- Project Media with Video Support -->
+                            <div class="position-relative">
+                                <% if (project.video && project.video !== '') { %>
+                                    <!-- Video Indicator -->
+                                    <div class="position-absolute top-0 end-0 m-2">
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-video me-1"></i>Video
+                                        </span>
+                                    </div>
+                                <% } %>
+                                
+                                <% if (project.video && project.video !== '') { %>
+                                    <!-- Video Thumbnail -->
+                                    <div class="card-img-top bg-dark text-white d-flex align-items-center justify-content-center"
+                                         style="height: 200px; cursor: pointer;" 
+                                         onclick="window.location.href='/projects/<%= project._id %>'">
+                                        <i class="fas fa-play-circle fa-3x"></i>
+                                    </div>
+                                <% } else { %>
+                                    <!-- Image -->
+                                    <img src="/uploads/<%= project.image || 'default-project.jpg' %>" 
+                                         class="card-img-top" alt="<%= project.title %>"
+                                         style="height: 200px; object-fit: cover;"
+                                         onerror="this.onerror=null; this.src='/images/default-project.jpg';">
+                                <% } %>
+                            </div>
+                            
                             <div class="card-body">
                                 <h5 class="card-title"><%= project.title %></h5>
                                 <p class="card-text"><%= project.shortDescription %></p>
-                                <% if (project.targetAmount) { %>
+                                
+                                <!-- Add video indicator in text -->
+                                <% if (project.video && project.video !== '') { %>
+                                    <p class="small text-muted">
+                                        <i class="fas fa-video me-1"></i>Includes video content
+                                    </p>
+                                <% } %>
+                                
+                                <% if (project.targetAmount && project.targetAmount > 0) { %>
                                     <div class="progress mb-3">
                                         <div class="progress-bar" role="progressbar" 
                                             style="width: <%= Math.min(((project.raisedAmount || 0) / project.targetAmount * 100), 100) %>%" 
@@ -115,7 +147,7 @@
                     <a href="/about" class="btn btn-primary mt-3">Learn More About Us</a>
                 </div>
                 <div class="col-lg-6">
-                    <img src="/images/about.jpg" alt="About Gelelcha Charity" class="img-fluid rounded shadow">
+                    <img src="/uploads/logo.png" alt="About Gelelcha Charity" class="img-fluid rounded shadow">
                 </div>
             </div>
         </div>
@@ -151,7 +183,6 @@
         </div>
     </section>
 
-<%- include('../partials/head', {title: title}) %>
 <%- include('../partials/footer') %>
 <%- include('../partials/scripts') %>
     

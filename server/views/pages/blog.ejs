@@ -33,15 +33,13 @@
                     <div class="col-lg-4 col-md-6 mb-4">
                         <div class="card blog-card h-100">
                             <% if (blog.image && blog.image !== 'default-blog.jpg') { %>
-                                <img src="/public/uploads/<%= blog.image %>" 
-                                     class="card-img-top" alt="<%= blog.title %>">
+                                <img src="/uploads/<%= blog.image %>" class="card-img-top" alt="<%= blog.title %>">
                             <% } else { %>
-                                <img src="/public/images/default-blog.jpg" 
-                                     class="card-img-top" alt="Default Blog Image">
+                                <img src="/uploads/default-blog.jpg" class="card-img-top" alt="Default Blog Image">
                             <% } %>
                             <% if (blog.video) { %>
                                 <video controls class="card-video-top">
-                                    <source src="/public/uploads/<%= blog.video %>" type="video/mp4">
+                                    <source src="/uploads/<%= blog.video %>" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
                             <% } %>

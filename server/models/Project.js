@@ -20,7 +20,8 @@ const projectSchema = new mongoose.Schema({
     default: 'default-project.jpg'
   },
   video: {
-    type: String
+    type: String,
+    default: ''
   },
   status: {
     type: String,
@@ -31,8 +32,14 @@ const projectSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  endDate: Date,
-  targetAmount: Number,
+  endDate: {
+    type: Date,
+    default: null
+  },
+  targetAmount: {
+    type: Number,
+    default: 0
+  },
   raisedAmount: {
     type: Number,
     default: 0
@@ -42,36 +49,63 @@ const projectSchema = new mongoose.Schema({
     default: 0
   },
   impact: {
-    beneficiaries: Number,
-    locations: [String]
+    beneficiaries: {
+      type: Number,
+      default: 0
+    },
+    locations: [{
+      type: String,
+      default: []
+    }]
   },
   isFeatured: {
     type: Boolean,
     default: false
   },
-  gallery: [String],
-  videos: [String]
+  gallery: [{
+    type: String,
+    default: []
+  }],
+  videos: [{
+    type: String,
+    default: []
+  }]
 }, {
   timestamps: true
 });
 
-// Better checkbox handling
+// Handle checkbox value conversion
 projectSchema.pre('save', function(next) {
-  // Handle checkbox value conversion
-  if (this.isModified('isFeatured')) {
-    if (typeof this.isFeatured === 'string') {
-      this.isFeatured = this.isFeatured === 'on';
-    } else if (typeof this.isFeatured === 'undefined') {
-      this.isFeatured = false;
-    }
+  // Convert string 'on' to boolean true, undefined to false
+  if (this.isFeatured === 'on') {
+    this.isFeatured = true;
+  } else if (this.isFeatured === undefined || this.isFeatured === null) {
+    this.isFeatured = false;
   }
+  
+  // Set default values for other optional fields
+  if (!this.video) this.video = '';
+  if (!this.endDate) this.endDate = null;
+  if (!this.impact) this.impact = { beneficiaries: 0, locations: [] };
+  if (!this.gallery) this.gallery = [];
+  if (!this.videos) this.videos = [];
+  
   next();
 });
 
-// Add static method for better validation
-projectSchema.statics.safeCreate = function(data) {
-  const project = new this(data);
-  return project.validate().then(() => project);
+// Add query method with timeout handling
+projectSchema.statics.findWithTimeout = function(conditions = {}, options = {}) {
+  const query = this.find(conditions);
+  if (options.timeout) {
+    query.maxTimeMS(options.timeout);
+  }
+  if (options.limit) {
+    query.limit(options.limit);
+  }
+  if (options.sort) {
+    query.sort(options.sort);
+  }
+  return query;
 };
 
 module.exports = mongoose.model('Project', projectSchema);

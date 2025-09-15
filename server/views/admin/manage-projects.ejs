@@ -9,6 +9,12 @@
         .status-badge {
             font-size: 0.75rem;
         }
+        .project-image {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -47,6 +53,7 @@
                                 <th>Raised</th>
                                 <th>Target</th>
                                 <th>Featured</th>
+                                <th>Media</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -56,8 +63,22 @@
                                     <tr>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <img src="/uploads/<%= project.image || 'default-project.jpg' %>" alt="<%= project.title %>" 
-                                                     class="rounded me-3" width="50" height="50" style="object-fit: cover;">
+                                                <% if (project.video && project.video !== '') { %>
+                                                    <!-- Video thumbnail -->
+                                                    <div class="position-relative me-3">
+                                                        <div class="project-image bg-dark text-white d-flex align-items-center justify-content-center">
+                                                            <i class="fas fa-play"></i>
+                                                        </div>
+                                                        <span class="position-absolute top-0 end-0 translate-middle badge bg-danger rounded-pill" style="font-size: 8px;">
+                                                            <i class="fas fa-video"></i>
+                                                        </span>
+                                                    </div>
+                                                <% } else { %>
+                                                    <!-- Image thumbnail -->
+                                                    <img src="/uploads/<%= project.image || 'default-project.jpg' %>" alt="<%= project.title %>" 
+                                                         class="project-image me-3"
+                                                         onerror="this.onerror=null; this.src='/images/default-project.jpg';">
+                                                <% } %>
                                                 <div>
                                                     <h6 class="mb-0"><%= project.title %></h6>
                                                     <small class="text-muted"><%= project.shortDescription %></small>
@@ -79,6 +100,21 @@
                                                 <i class="fas fa-star text-warning"></i>
                                             <% } else { %>
                                                 <i class="far fa-star text-muted"></i>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <% if (project.video && project.video !== '') { %>
+                                                <span class="badge bg-info">
+                                                    <i class="fas fa-video me-1"></i>Video
+                                                </span>
+                                            <% } else if (project.image && project.image !== 'default-project.jpg') { %>
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-image me-1"></i>Image
+                                                </span>
+                                            <% } else { %>
+                                                <span class="badge bg-secondary">
+                                                    <i class="fas fa-image me-1"></i>Default
+                                                </span>
                                             <% } %>
                                         </td>
                                         <td class="action-buttons">
@@ -103,7 +139,7 @@
                                 <% }); %>
                             <% } else { %>
                                 <tr>
-                                    <td colspan="6" class="text-center py-4">
+                                    <td colspan="7" class="text-center py-4">
                                         <i class="fas fa-folder-open fa-2x text-muted mb-3"></i>
                                         <p class="text-muted">No projects found</p>
                                         <a href="/admin/projects/new" class="btn btn-primary">Create Your First Project</a>

@@ -30,9 +30,8 @@
                     <div class="text-center mb-5">
                         <h1 class="display-4 fw-bold mb-3"><%= blog.title %></h1>
                         
-                        <% if (blog.image && blog.image !== 'default-blog.jpg') { %>
-                            <img src="/public/uploads/<%= blog.image %>" alt="<%= blog.title %>" 
-                                 class="img-fluid rounded shadow mb-4" style="max-height: 400px; object-fit: cover;">
+                       <% if (blog.image && blog.image !== 'default-blog.jpg') { %>
+                        <img src="/uploads/<%= blog.image %>" alt="<%= blog.title %>" class="img-fluid rounded shadow mb-4" style="max-height: 400px; object-fit: cover;">
                         <% } %>
                         
                         <div class="blog-meta text-start">
@@ -50,16 +49,16 @@
                     </div>
 
                     <!-- Video Section -->
-                    <% if (blog.video) { %>
-                        <div class="mb-5">
-                            <div class="ratio ratio-16x9">
-                                <video controls class="rounded shadow">
-                                    <source src="/public/uploads/<%= blog.video %>" type="video/mp4">
-                                    Your browser does not support the video tag.
-                                </video>
-                            </div>
-                        </div>
-                    <% } %>
+                   <% if (blog.video) { %>
+    <div class="mb-5">
+        <div class="ratio ratio-16x9">
+            <video controls class="rounded shadow">
+                <source src="/uploads/<%= blog.video %>" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+<% } %>
 
                     <!-- Blog Content -->
                     <div class="blog-content">

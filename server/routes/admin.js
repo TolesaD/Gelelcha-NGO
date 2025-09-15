@@ -1,41 +1,37 @@
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
-const Admin = require('../models/Admin');
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Ensure uploads directory exists
-const uploadsDir = './public/uploads';
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+// Import models from index
+const { Admin, Blog, Contact, Donation, Project, Volunteer, mongoose } = require('../models/index');
 
-// Multer configuration for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, './public/uploads');
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`);
-  }
+// ✅ FIXED: Import multer from your centralized middleware
+const { upload } = require('../middleware/upload');
+
+// ✅ REMOVE the duplicate multer configuration from here
+// (Delete everything from "Ensure uploads directory exists" to the end of the multer config)
+
+// Simple connection check
+const checkDBConnection = () => {
+  return mongoose.connection.readyState === 1;
+};
+
+// Add connection event listeners
+mongoose.connection.on('connected', () => {
+  console.log('✅ MongoDB connected - ready for operations');
 });
 
-const upload = multer({
-  storage,
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only images and videos are allowed'), false);
-    }
-  },
-  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+mongoose.connection.on('error', (err) => {
+  console.log('❌ MongoDB connection error:', err.message);
 });
 
-// Simple auth middleware
+mongoose.connection.on('disconnected', () => {
+  console.log('⚠️ MongoDB disconnected');
+});
+
+// SIMPLE auth middleware - FIXED
 const auth = (req, res, next) => {
   if (req.session && req.session.admin) {
     return next();
@@ -50,11 +46,13 @@ router.get('/login', (req, res) => {
     return res.redirect('/admin/dashboard');
   }
   res.render('admin/login', {
-    title: 'Admin Login - Gelelcha Charity'
+    title: 'Admin Login - Gelelcha Charity',
+    error_msg: req.flash('error_msg'),
+    success_msg: req.flash('success_msg')
   });
 });
 
-// Admin login processing
+// Admin login processing - SIMPLIFIED
 router.post('/login', [
   check('username', 'Username is required').notEmpty(),
   check('password', 'Password is required').notEmpty()
@@ -64,7 +62,8 @@ router.post('/login', [
     return res.render('admin/login', {
       title: 'Admin Login - Gelelcha Charity',
       error_msg: 'Please fill in all fields',
-      errors: errors.array()
+      errors: errors.array(),
+      username: req.body.username
     });
   }
 
@@ -72,63 +71,54 @@ router.post('/login', [
   console.log('Login attempt:', { username });
 
   try {
-    const admin = await Admin.findOne({ username, isActive: true });
-    
-    if (!admin) {
-      console.log('Admin not found or inactive:', username);
-      return res.render('admin/login', {
-        title: 'Admin Login - Gelelcha Charity',
-        error_msg: 'Invalid credentials or account disabled'
-      });
-    }
-
-    console.log('Admin found:', admin.username, admin.email);
-    
-    const isMatch = await admin.comparePassword(password);
-    console.log('Password match:', isMatch);
-    
-    if (isMatch) {
-      admin.lastLogin = new Date();
-      await admin.save();
-      
+    // Simple credential check - will prompt for login every time
+    if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
       req.session.admin = true;
-      req.session.adminId = admin._id;
-      req.session.adminRole = admin.role;
-      req.session.adminName = admin.username;
+      req.session.adminName = username;
       
-      console.log('Login successful for:', admin.username);
-      req.flash('success_msg', `Welcome back, ${admin.username}!`);
+      req.flash('success_msg', 'Welcome back, admin!');
       return res.redirect('/admin/dashboard');
     } else {
-      console.log('Password mismatch for:', username);
-      return res.render('admin/login', {
-        title: 'Admin Login - Gelelcha Charity',
-        error_msg: 'Invalid credentials'
-      });
+      req.flash('error_msg', 'Invalid credentials');
+      return res.redirect('/admin/login');
     }
   } catch (error) {
-    console.error('Login error:', error);
-    res.render('admin/login', {
-      title: 'Admin Login - Gelelcha Charity',
-      error_msg: 'Server error during login'
-    });
+    console.error('Unexpected login error:', error);
+    req.flash('error_msg', 'Server error during login. Please try again.');
+    return res.redirect('/admin/login');
   }
 });
 
 // Admin dashboard
 router.get('/dashboard', auth, async (req, res) => {
   try {
-    const Project = require('../models/Project');
-    const Donation = require('../models/Donation');
-    const Volunteer = require('../models/Volunteer');
-    const Blog = require('../models/Blog');
-    const Contact = require('../models/Contact');
+    if (!checkDBConnection()) {
+      return res.render('admin/dashboard', {
+        title: 'Dashboard - Gelelcha Admin',
+        adminName: req.session.adminName,
+        projectCount: 0,
+        donationCount: 0,
+        volunteerCount: 0,
+        blogCount: 0,
+        contactCount: 0,
+        currentPage: 'dashboard',
+        error_msg: 'Database not connected'
+      });
+    }
     
-    const projectCount = await Project.countDocuments();
-    const donationCount = await Donation.countDocuments();
-    const volunteerCount = await Volunteer.countDocuments();
-    const blogCount = await Blog.countDocuments();
-    const contactCount = await Contact.countDocuments();
+    const [
+      projectCount,
+      donationCount,
+      volunteerCount,
+      blogCount,
+      contactCount
+    ] = await Promise.all([
+      Project.countDocuments().maxTimeMS(5000).catch(() => 0),
+      Donation.countDocuments().maxTimeMS(5000).catch(() => 0),
+      Volunteer.countDocuments().maxTimeMS(5000).catch(() => 0),
+      Blog.countDocuments().maxTimeMS(5000).catch(() => 0),
+      Contact.countDocuments().maxTimeMS(5000).catch(() => 0)
+    ]);
     
     res.render('admin/dashboard', {
       title: 'Dashboard - Gelelcha Admin',
@@ -141,10 +131,17 @@ router.get('/dashboard', auth, async (req, res) => {
       currentPage: 'dashboard'
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).render('error', {
-      title: 'Server Error',
-      message: 'Error loading dashboard'
+    console.error('Dashboard error:', error);
+    res.render('admin/dashboard', {
+      title: 'Dashboard - Gelelcha Admin',
+      adminName: req.session.adminName,
+      projectCount: 0,
+      donationCount: 0,
+      volunteerCount: 0,
+      blogCount: 0,
+      contactCount: 0,
+      currentPage: 'dashboard',
+      error_msg: 'Error loading dashboard'
     });
   }
 });
@@ -152,109 +149,40 @@ router.get('/dashboard', auth, async (req, res) => {
 // Admin Projects Management
 router.get('/projects', auth, async (req, res) => {
   try {
-    const Project = require('../models/Project');
-    const projects = await Project.find().sort({ createdAt: -1 });
+    console.log('Fetching projects, connection state:', mongoose.connection.readyState);
+    
+    if (!checkDBConnection()) {
+      return res.render('admin/manage-projects', {
+        title: 'Manage Projects - Gelelcha Admin',
+        adminName: req.session.adminName,
+        projects: [],
+        currentPage: 'projects',
+        error_msg: 'Database not connected. Please try again.'
+      });
+    }
+    
+    const projects = await Project.find().sort({ createdAt: -1 }).maxTimeMS(5000);
     
     res.render('admin/manage-projects', {
       title: 'Manage Projects - Gelelcha Admin',
       adminName: req.session.adminName,
-      projects: projects || [],
-      currentPage: 'projects'
+      projects: projects,
+      currentPage: 'projects',
+      dbConnected: true
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).render('error', {
-      title: 'Server Error',
-      message: 'Error loading projects'
-    });
-  }
-});
-
-// Admin Donations Management
-router.get('/donations', auth, async (req, res) => {
-  try {
-    const Donation = require('../models/Donation');
-    const donations = await Donation.find().sort({ createdAt: -1 });
-    
-    res.render('admin/manage-donations', {
-      title: 'Manage Donations - Gelelcha Admin',
+    console.error('Projects page error:', error);
+    res.render('admin/manage-projects', {
+      title: 'Manage Projects - Gelelcha Admin',
       adminName: req.session.adminName,
-      donations,
-      currentPage: 'donations'
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).render('error', {
-      title: 'Server Error',
-      message: 'Error loading donations'
+      projects: [],
+      currentPage: 'projects',
+      error_msg: 'Error loading projects: ' + error.message
     });
   }
 });
 
-// Admin Volunteers Management
-router.get('/volunteers', auth, async (req, res) => {
-  try {
-    const Volunteer = require('../models/Volunteer');
-    const volunteers = await Volunteer.find().sort({ createdAt: -1 });
-    
-    res.render('admin/manage-volunteers', {
-      title: 'Manage Volunteers - Gelelcha Admin',
-      adminName: req.session.adminName,
-      volunteers,
-      currentPage: 'volunteers'
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).render('error', {
-      title: 'Server Error',
-      message: 'Error loading volunteers'
-    });
-  }
-});
-
-// Admin Blog Management
-router.get('/blog', auth, async (req, res) => {
-  try {
-    const Blog = require('../models/Blog');
-    const blogs = await Blog.find().sort({ createdAt: -1 });
-    
-    res.render('admin/manage-blog', {
-      title: 'Manage Blog - Gelelcha Admin',
-      adminName: req.session.adminName,
-      blogs: blogs || [],
-      currentPage: 'blog'
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).render('error', {
-      title: 'Server Error',
-      message: 'Error loading blog posts'
-    });
-  }
-});
-
-// Admin Contacts Management
-router.get('/contacts', auth, async (req, res) => {
-  try {
-    const Contact = require('../models/Contact');
-    const contacts = await Contact.find().sort({ createdAt: -1 });
-    
-    res.render('admin/manage-contacts', {
-      title: 'Manage Contacts - Gelelcha Admin',
-      adminName: req.session.adminName,
-      contacts,
-      currentPage: 'contacts'
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).render('error', {
-      title: 'Server Error',
-      message: 'Error loading contacts'
-    });
-  }
-});
-
-// Add New Project - Form
+// NEW PROJECT FORM
 router.get('/projects/new', auth, (req, res) => {
   res.render('admin/project-form', {
     title: 'Add New Project - Gelelcha Admin',
@@ -266,11 +194,15 @@ router.get('/projects/new', auth, (req, res) => {
   });
 });
 
-// Edit Project - Form
+// EDIT PROJECT FORM
 router.get('/projects/edit/:id', auth, async (req, res) => {
   try {
-    const Project = require('../models/Project');
-    const project = await Project.findById(req.params.id);
+    if (!checkDBConnection()) {
+      req.flash('error_msg', 'Database not connected');
+      return res.redirect('/admin/projects');
+    }
+    
+    const project = await Project.findById(req.params.id).maxTimeMS(5000);
     
     if (!project) {
       req.flash('error_msg', 'Project not found');
@@ -281,43 +213,150 @@ router.get('/projects/edit/:id', auth, async (req, res) => {
       title: 'Edit Project - Gelelcha Admin',
       adminName: req.session.adminName,
       currentPage: 'projects',
-      project,
+      project: project,
       formAction: `/admin/projects/${project._id}`,
-      formMethod: 'POST'
+      formMethod: 'PUT'
     });
   } catch (error) {
-    console.error(error);
-    req.flash('error_msg', 'Error loading project');
+    console.error('Edit project error:', error);
+    req.flash('error_msg', 'Error loading project for editing');
     res.redirect('/admin/projects');
   }
 });
 
-// Create Project
+// NEW BLOG FORM
+router.get('/blog/new', auth, (req, res) => {
+  res.render('admin/blog-form', {
+    title: 'Add New Blog Post - Gelelcha Admin',
+    adminName: req.session.adminName,
+    currentPage: 'blog',
+    blog: null,
+    formAction: '/admin/blog',
+    formMethod: 'POST'
+  });
+});
+
+// EDIT BLOG FORM
+router.get('/blog/edit/:id', auth, async (req, res) => {
+  try {
+    if (!checkDBConnection()) {
+      req.flash('error_msg', 'Database not connected');
+      return res.redirect('/admin/blog');
+    }
+    
+    const blog = await Blog.findById(req.params.id).maxTimeMS(5000);
+    
+    if (!blog) {
+      req.flash('error_msg', 'Blog post not found');
+      return res.redirect('/admin/blog');
+    }
+    
+    res.render('admin/blog-form', {
+      title: 'Edit Blog Post - Gelelcha Admin',
+      adminName: req.session.adminName,
+      currentPage: 'blog',
+      blog: blog,
+      formAction: `/admin/blog/${blog._id}`,
+      formMethod: 'PUT'
+    });
+  } catch (error) {
+    console.error('Edit blog error:', error);
+    req.flash('error_msg', 'Error loading blog post for editing');
+    res.redirect('/admin/blog');
+  }
+});
+
+// Admin Blog Management
+router.get('/blog', auth, async (req, res) => {
+  try {
+    console.log('Fetching blogs, connection state:', mongoose.connection.readyState);
+    
+    if (!checkDBConnection()) {
+      return res.render('admin/manage-blog', {
+        title: 'Manage Blog - Gelelcha Admin',
+        adminName: req.session.adminName,
+        blogs: [],
+        currentPage: 'blog',
+        error_msg: 'Database not connected. Please try again.'
+      });
+    }
+    
+    const blogs = await Blog.find().sort({ createdAt: -1 }).maxTimeMS(5000);
+    
+    res.render('admin/manage-blog', {
+      title: 'Manage Blog - Gelelcha Admin',
+      adminName: req.session.adminName,
+      blogs: blogs,
+      currentPage: 'blog',
+      dbConnected: true
+    });
+  } catch (error) {
+    console.error('Blog page error:', error);
+    res.render('admin/manage-blog', {
+      title: 'Manage Blog - Gelelcha Admin',
+      adminName: req.session.adminName,
+      blogs: [],
+      currentPage: 'blog',
+      error_msg: 'Error loading blog posts: ' + error.message
+    });
+  }
+});
+
+// Create project - Enhanced with better error handling
 router.post('/projects', auth, upload.fields([
   { name: 'image', maxCount: 1 },
   { name: 'video', maxCount: 1 }
 ]), async (req, res) => {
   try {
-    const Project = require('../models/Project');
+    console.log('Project creation attempted - files:', req.files);
+    console.log('Database connection state:', mongoose.connection.readyState);
+    
+    if (!checkDBConnection()) {
+      req.flash('error_msg', 'Database not connected. Please try again.');
+      return res.redirect('/admin/projects/new');
+    }
     
     const formData = {
       ...req.body,
-      isFeatured: req.body.isFeatured === 'on'
+      isFeatured: req.body.isFeatured === 'on' // Convert checkbox to boolean
     };
     
-    if (req.files && req.files['image']) {
+    // Handle image upload
+    if (req.files && req.files['image'] && req.files['image'][0]) {
       formData.image = req.files['image'][0].filename;
+    } else {
+      formData.image = 'default-project.jpg';
     }
     
-    if (req.files && req.files['video']) {
+    // Handle video upload
+    if (req.files && req.files['video'] && req.files['video'][0]) {
       formData.video = req.files['video'][0].filename;
+    } else {
+      formData.video = '';
     }
+    
+    // Convert numeric fields
+    if (formData.targetAmount) {
+      formData.targetAmount = parseFloat(formData.targetAmount);
+    } else {
+      formData.targetAmount = 0;
+    }
+    
+    if (formData.raisedAmount) {
+      formData.raisedAmount = parseFloat(formData.raisedAmount);
+    } else {
+      formData.raisedAmount = 0;
+    }
+    
+    console.log('Creating project with data:', formData);
     
     const project = new Project(formData);
     await project.save();
     
-    req.flash('success_msg', 'Project created successfully');
+    console.log('Project created successfully:', project._id);
+    req.flash('success_msg', 'Project created successfully!');
     res.redirect('/admin/projects');
+    
   } catch (error) {
     console.error('Error creating project:', error);
     req.flash('error_msg', 'Error creating project: ' + error.message);
@@ -325,13 +364,62 @@ router.post('/projects', auth, upload.fields([
   }
 });
 
-// Update Project
-router.post('/projects/:id', auth, upload.fields([
+// Create blog post
+router.post('/blog', auth, upload.fields([
   { name: 'image', maxCount: 1 },
   { name: 'video', maxCount: 1 }
 ]), async (req, res) => {
   try {
-    const Project = require('../models/Project');
+    console.log('Blog creation attempted - files:', req.files);
+    console.log('Database connection state:', mongoose.connection.readyState);
+    
+    if (!checkDBConnection()) {
+      req.flash('error_msg', 'Database not connected. Please try again.');
+      return res.redirect('/admin/blog/new');
+    }
+    
+    const blogData = {
+      ...req.body,
+      author: req.session.adminName,
+      tags: req.body.tags ? req.body.tags.split(',').map(tag => tag.trim()) : [],
+      status: req.body.status || 'published'
+    };
+    
+    if (req.files && req.files['image']) {
+      blogData.image = req.files['image'][0].filename;
+    } else {
+      blogData.image = 'default-blog.jpg';
+    }
+    
+    if (req.files && req.files['video']) {
+      blogData.video = req.files['video'][0].filename;
+    }
+    
+    console.log('Creating blog with data:', blogData);
+    
+    const blog = new Blog(blogData);
+    await blog.save();
+    
+    console.log('Blog created successfully:', blog._id);
+    req.flash('success_msg', 'Blog post created successfully!');
+    res.redirect('/admin/blog');
+    
+  } catch (error) {
+    console.error('Error creating blog post:', error);
+    req.flash('error_msg', 'Error creating blog post: ' + error.message);
+    res.redirect('/admin/blog/new');
+  }
+});
+
+// Update project function
+const updateProjectHandler = async (req, res) => {
+  try {
+    console.log('Project update attempted - files:', req.files);
+    
+    if (!checkDBConnection()) {
+      req.flash('error_msg', 'Database not connected. Please try again.');
+      return res.redirect(`/admin/projects/edit/${req.params.id}`);
+    }
     
     const updateData = {
       ...req.body,
@@ -348,134 +436,29 @@ router.post('/projects/:id', auth, upload.fields([
     
     await Project.findByIdAndUpdate(req.params.id, updateData);
     
-    req.flash('success_msg', 'Project updated successfully');
+    req.flash('success_msg', 'Project updated successfully!');
     res.redirect('/admin/projects');
+    
   } catch (error) {
     console.error('Error updating project:', error);
     req.flash('error_msg', 'Error updating project: ' + error.message);
     res.redirect(`/admin/projects/edit/${req.params.id}`);
   }
-});
+};
 
-// Delete Project
-router.post('/projects/delete/:id', auth, async (req, res) => {
+// Update blog post function
+const updateBlogHandler = async (req, res) => {
   try {
-    const Project = require('../models/Project');
-    await Project.findByIdAndDelete(req.params.id);
+    console.log('Blog update attempted - files:', req.files);
     
-    req.flash('success_msg', 'Project deleted successfully');
-    res.redirect('/admin/projects');
-  } catch (error) {
-    console.error(error);
-    req.flash('error_msg', 'Error deleting project');
-    res.redirect('/admin/projects');
-  }
-});
-
-// Toggle Project Feature Status
-router.post('/projects/feature/:id', auth, async (req, res) => {
-  try {
-    const Project = require('../models/Project');
-    const project = await Project.findById(req.params.id);
-    project.isFeatured = !project.isFeatured;
-    await project.save();
-    
-    req.flash('success_msg', `Project ${project.isFeatured ? 'featured' : 'unfeatured'} successfully`);
-    res.redirect('/admin/projects');
-  } catch (error) {
-    console.error(error);
-    req.flash('error_msg', 'Error updating project');
-    res.redirect('/admin/projects');
-  }
-});
-
-// Add New Blog Post - Form
-router.get('/blog/new', auth, (req, res) => {
-  res.render('admin/blog-form', {
-    title: 'Add New Blog Post - Gelelcha Admin',
-    adminName: req.session.adminName,
-    currentPage: 'blog',
-    blog: null,
-    formAction: '/admin/blog',
-    formMethod: 'POST'
-  });
-});
-
-// Edit Blog Post - Form
-router.get('/blog/edit/:id', auth, async (req, res) => {
-  try {
-    const Blog = require('../models/Blog');
-    const blog = await Blog.findById(req.params.id);
-    
-    res.render('admin/blog-form', {
-      title: 'Edit Blog Post - Gelelcha Admin',
-      adminName: req.session.adminName,
-      currentPage: 'blog',
-      blog,
-      formAction: `/admin/blog/${blog._id}`,
-      formMethod: 'POST'
-    });
-  } catch (error) {
-    console.error(error);
-    req.flash('error_msg', 'Error loading blog post');
-    res.redirect('/admin/blog');
-  }
-});
-
-// Create Blog Post (FIXED - This is the only create route)
-router.post('/blog', auth, upload.fields([
-  { name: 'image', maxCount: 1 },
-  { name: 'video', maxCount: 1 }
-]), async (req, res) => {
-  try {
-    console.log('=== BLOG CREATION ===');
-    console.log('Request body:', req.body);
-    
-    const Blog = require('../models/Blog');
-    
-    const blogData = {
-      ...req.body,
-      author: req.session.adminName,
-      tags: req.body.tags ? req.body.tags.split(',').map(tag => tag.trim()) : [],
-      // Ensure status is properly set
-      status: req.body.status || 'published'
-    };
-    
-    console.log('Blog data with status:', blogData.status);
-    
-    if (req.files && req.files['image']) {
-      blogData.image = req.files['image'][0].filename;
+    if (!checkDBConnection()) {
+      req.flash('error_msg', 'Database not connected. Please try again.');
+      return res.redirect(`/admin/blog/edit/${req.params.id}`);
     }
-    
-    if (req.files && req.files['video']) {
-      blogData.video = req.files['video'][0].filename;
-    }
-    
-    const blog = new Blog(blogData);
-    await blog.save();
-    
-    console.log('Blog saved with status:', blog.status);
-    req.flash('success_msg', 'Blog post created successfully');
-    res.redirect('/admin/blog');
-  } catch (error) {
-    console.error('Error creating blog post:', error);
-    req.flash('error_msg', 'Error creating blog post: ' + error.message);
-    res.redirect('/admin/blog/new');
-  }
-});
-
-// Update Blog Post (FIXED - This is the only update route)
-router.post('/blog/:id', auth, upload.fields([
-  { name: 'image', maxCount: 1 },
-  { name: 'video', maxCount: 1 }
-]), async (req, res) => {
-  try {
-    const Blog = require('../models/Blog');
     
     const updateData = {
       ...req.body,
       tags: req.body.tags ? req.body.tags.split(',').map(tag => tag.trim()) : [],
-      // Ensure status is properly handled
       status: req.body.status || 'published'
     };
     
@@ -489,99 +472,171 @@ router.post('/blog/:id', auth, upload.fields([
     
     await Blog.findByIdAndUpdate(req.params.id, updateData);
     
-    req.flash('success_msg', 'Blog post updated successfully');
+    req.flash('success_msg', 'Blog post updated successfully!');
     res.redirect('/admin/blog');
+    
   } catch (error) {
     console.error('Error updating blog post:', error);
     req.flash('error_msg', 'Error updating blog post: ' + error.message);
     res.redirect(`/admin/blog/edit/${req.params.id}`);
   }
-});
+};
 
-// Publish Blog Post
-router.post('/blog/publish/:id', auth, async (req, res) => {
+// Add both POST and PUT routes for updates
+router.put('/projects/:id', auth, upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'video', maxCount: 1 }
+]), updateProjectHandler);
+
+router.post('/projects/:id', auth, upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'video', maxCount: 1 }
+]), updateProjectHandler);
+
+router.put('/blog/:id', auth, upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'video', maxCount: 1 }
+]), updateBlogHandler);
+
+router.post('/blog/:id', auth, upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'video', maxCount: 1 }
+]), updateBlogHandler);
+
+// Delete project
+router.post('/projects/delete/:id', auth, async (req, res) => {
   try {
-    const Blog = require('../models/Blog');
-    await Blog.findByIdAndUpdate(req.params.id, {
-      status: 'published',
-      publishedAt: new Date()
-    });
+    if (!checkDBConnection()) {
+      req.flash('error_msg', 'Database not connected');
+      return res.redirect('/admin/projects');
+    }
     
-    req.flash('success_msg', 'Blog post published successfully');
-    res.redirect('/admin/blog');
+    await Project.findByIdAndDelete(req.params.id);
+    
+    req.flash('success_msg', 'Project deleted successfully!');
+    res.redirect('/admin/projects');
   } catch (error) {
-    console.error('Error publishing blog post:', error);
-    req.flash('error_msg', 'Error publishing blog post');
-    res.redirect('/admin/blog');
+    console.error('Error deleting project:', error);
+    req.flash('error_msg', 'Error deleting project');
+    res.redirect('/admin/projects');
   }
 });
 
-// Delete Blog Post
+// Delete blog post
 router.post('/blog/delete/:id', auth, async (req, res) => {
   try {
-    const Blog = require('../models/Blog');
+    if (!checkDBConnection()) {
+      req.flash('error_msg', 'Database not connected');
+      return res.redirect('/admin/blog');
+    }
+    
     await Blog.findByIdAndDelete(req.params.id);
     
-    req.flash('success_msg', 'Blog post deleted successfully');
+    req.flash('success_msg', 'Blog post deleted successfully!');
     res.redirect('/admin/blog');
   } catch (error) {
-    console.error(error);
+    console.error('Error deleting blog post:', error);
     req.flash('error_msg', 'Error deleting blog post');
     res.redirect('/admin/blog');
   }
 });
 
-// Force publish all draft blogs
-router.get('/blog/force-publish-all', auth, async (req, res) => {
+// Contacts Management
+router.get('/contacts', auth, async (req, res) => {
   try {
-    const Blog = require('../models/Blog');
-    const result = await Blog.updateMany(
-      { status: { $ne: 'published' } },
-      { 
-        status: 'published',
-        publishedAt: new Date()
-      }
-    );
+    if (!checkDBConnection()) {
+      return res.render('admin/manage-contacts', {
+        title: 'Manage Contacts - Gelelcha Admin',
+        adminName: req.session.adminName,
+        contacts: [],
+        currentPage: 'contacts',
+        error_msg: 'Database not connected'
+      });
+    }
     
-    console.log('Force published blogs:', result);
-    req.flash('success_msg', `Force published ${result.modifiedCount} blog posts`);
-    res.redirect('/admin/blog');
+    const contacts = await Contact.find().sort({ createdAt: -1 }).maxTimeMS(5000);
+    
+    res.render('admin/manage-contacts', {
+      title: 'Manage Contacts - Gelelcha Admin',
+      adminName: req.session.adminName,
+      contacts: contacts,
+      currentPage: 'contacts'
+    });
   } catch (error) {
-    console.error('Error force publishing:', error);
-    req.flash('error_msg', 'Error force publishing blogs');
-    res.redirect('/admin/blog');
+    console.error('Contacts page error:', error);
+    res.render('admin/manage-contacts', {
+      title: 'Manage Contacts - Gelelcha Admin',
+      adminName: req.session.adminName,
+      contacts: [],
+      currentPage: 'contacts',
+      error_msg: 'Error loading contacts'
+    });
   }
 });
 
-// Debug route to check blog posts
-router.get('/debug/blogs', auth, async (req, res) => {
+// Volunteers Management
+router.get('/volunteers', auth, async (req, res) => {
   try {
-    const Blog = require('../models/Blog');
-    const allBlogs = await Blog.find().sort({ createdAt: -1 });
-    const publishedBlogs = await Blog.find({ status: 'published' }).sort({ createdAt: -1 });
+    if (!checkDBConnection()) {
+      return res.render('admin/manage-volunteers', {
+        title: 'Manage Volunteers - Gelelcha Admin',
+        adminName: req.session.adminName,
+        volunteers: [],
+        currentPage: 'volunteers',
+        error_msg: 'Database not connected'
+      });
+    }
     
-    res.json({
-      allBlogs: allBlogs.map(blog => ({
-        id: blog._id,
-        title: blog.title,
-        status: blog.status,
-        createdAt: blog.createdAt,
-        publishedAt: blog.publishedAt
-      })),
-      publishedBlogs: publishedBlogs.map(blog => ({
-        id: blog._id,
-        title: blog.title,
-        status: blog.status
-      })),
-      counts: {
-        all: allBlogs.length,
-        published: publishedBlogs.length,
-        draft: allBlogs.length - publishedBlogs.length
-      }
+    const volunteers = await Volunteer.find().sort({ createdAt: -1 }).maxTimeMS(5000);
+    
+    res.render('admin/manage-volunteers', {
+      title: 'Manage Volunteers - Gelelcha Admin',
+      adminName: req.session.adminName,
+      volunteers: volunteers,
+      currentPage: 'volunteers'
     });
   } catch (error) {
-    console.error('Debug error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Volunteers page error:', error);
+    res.render('admin/manage-volunteers', {
+      title: 'Manage Volunteers - Gelelcha Admin',
+      adminName: req.session.adminName,
+      volunteers: [],
+      currentPage: 'volunteers',
+      error_msg: 'Error loading volunteers'
+    });
+  }
+});
+
+// Donations Management
+router.get('/donations', auth, async (req, res) => {
+  try {
+    if (!checkDBConnection()) {
+      return res.render('admin/manage-donations', {
+        title: 'Manage Donations - Gelelcha Admin',
+        adminName: req.session.adminName,
+        donations: [],
+        currentPage: 'donations',
+        error_msg: 'Database not connected'
+      });
+    }
+    
+    const donations = await Donation.find().sort({ createdAt: -1 }).maxTimeMS(5000);
+    
+    res.render('admin/manage-donations', {
+      title: 'Manage Donations - Gelelcha Admin',
+      adminName: req.session.adminName,
+      donations: donations,
+      currentPage: 'donations'
+    });
+  } catch (error) {
+    console.error('Donations page error:', error);
+    res.render('admin/manage-donations', {
+      title: 'Manage Donations - Gelelcha Admin',
+      adminName: req.session.adminName,
+      donations: [],
+      currentPage: 'donations',
+      error_msg: 'Error loading donations'
+    });
   }
 });
 

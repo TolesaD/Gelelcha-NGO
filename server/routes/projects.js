@@ -5,17 +5,28 @@ const Project = require('../models/Project');
 // Public Projects page - show all projects
 router.get('/', async (req, res) => {
   try {
-    const projects = await Project.find().sort({ createdAt: -1 });
+    let projects = [];
+    
+    try {
+      projects = await Project.find()
+        .sort({ createdAt: -1 })
+        .maxTimeMS(10000) // 10 second timeout
+        .catch(() => []); // Return empty array on timeout
+    } catch (error) {
+      console.log('Projects query failed:', error.message);
+      projects = [];
+    }
     
     res.render('projects', {
       title: 'Our Projects - Gelelcha Charity',
-      projects: projects || []
+      projects: projects
     });
   } catch (error) {
     console.error('Projects page error:', error);
-    res.status(500).render('error', {
-      title: 'Server Error',
-      message: 'Error loading projects page'
+    // Render the page even with errors
+    res.render('projects', {
+      title: 'Our Projects - Gelelcha Charity',
+      projects: []
     });
   }
 });
@@ -23,7 +34,16 @@ router.get('/', async (req, res) => {
 // Public Project details page
 router.get('/:id', async (req, res) => {
   try {
-    const project = await Project.findById(req.params.id);
+    let project = null;
+    
+    try {
+      project = await Project.findById(req.params.id)
+        .maxTimeMS(10000) // 10 second timeout
+        .catch(() => null); // Return null on timeout
+    } catch (error) {
+      console.log('Project details query failed:', error.message);
+      project = null;
+    }
     
     if (!project) {
       return res.status(404).render('error', {

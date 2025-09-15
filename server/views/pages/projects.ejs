@@ -12,6 +12,13 @@
         .progress {
             height: 8px;
         }
+        .video-thumbnail {
+            background: linear-gradient(45deg, #000000, #333333);
+            cursor: pointer;
+        }
+        .video-thumbnail:hover {
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
@@ -30,9 +37,36 @@
                 <% projects.forEach(project => { %>
                     <div class="col-lg-4 col-md-6 mb-4">
                         <div class="card project-card h-100">
-                            <img src="/uploads/<%= project.image || 'default-project.jpg' %>" 
-                                 class="card-img-top" alt="<%= project.title %>"
-                                 style="height: 250px; object-fit: cover;">
+                            <!-- Project Media with Video Support -->
+                            <div class="position-relative">
+                                <% if (project.video && project.video !== '') { %>
+                                    <!-- Video Indicator -->
+                                    <div class="position-absolute top-0 end-0 m-2">
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-video me-1"></i>Video
+                                        </span>
+                                    </div>
+                                <% } %>
+                                
+                                <% if (project.video && project.video !== '') { %>
+                                    <!-- Video Thumbnail -->
+                                    <div class="video-thumbnail card-img-top d-flex align-items-center justify-content-center text-white"
+                                         style="height: 250px;"
+                                         onclick="window.location.href='/projects/<%= project._id %>'">
+                                        <div class="text-center">
+                                            <i class="fas fa-play-circle fa-3x mb-2"></i>
+                                            <p class="mb-0">Click to watch video</p>
+                                        </div>
+                                    </div>
+                                <% } else { %>
+                                    <!-- Image -->
+                                    <img src="/uploads/<%= project.image || 'default-project.jpg' %>" 
+                                         class="card-img-top" alt="<%= project.title %>"
+                                         style="height: 250px; object-fit: cover;"
+                                         onerror="this.onerror=null; this.src='/images/default-project.jpg';">
+                                <% } %>
+                            </div>
+                            
                             <div class="card-body">
                                 <span class="badge bg-<%= 
                                     project.status === 'completed' ? 'success' : 
@@ -42,6 +76,13 @@
                                 </span>
                                 <h5 class="card-title"><%= project.title %></h5>
                                 <p class="card-text"><%= project.shortDescription %></p>
+                                
+                                <!-- Video indicator text -->
+                                <% if (project.video && project.video !== '') { %>
+                                    <p class="small text-muted mb-2">
+                                        <i class="fas fa-video me-1"></i>Includes video content
+                                    </p>
+                                <% } %>
                                 
                                 <% if (project.targetAmount) { %>
                                     <div class="progress mb-2">

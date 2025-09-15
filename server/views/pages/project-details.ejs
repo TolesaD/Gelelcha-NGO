@@ -1,145 +1,171 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <%- include('../partials/head', {title: title}) %>
-    <style>
-        .project-hero {
-            height: 400px;
-            background-size: cover;
-            background-position: center;
-            position: relative;
-        }
-        .project-hero-overlay {
-            background: rgba(0, 0, 0, 0.6);
-            color: white;
-        }
-        .progress {
-            height: 20px;
-        }
-        .donation-stats {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-        }
-    </style>
+    <%- include('../partials/head', {title: project.title + ' - Gelelcha Charity'}) %>
 </head>
 <body>
     <%- include('../partials/header') %>
     
-<% if (project) { %>
-    <!-- Project Hero Section -->
-    <div class="project-hero" style="background-image: url('/uploads/<%= project.image || 'default-project.jpg' %>');">
-        <div class="project-hero-overlay h-100 d-flex align-items-center">
-            <div class="container">
-                <div class="row">
-                    <div class="col-lg-8">
-                        <h1 class="display-4 fw-bold"><%= project.title %></h1>
-                        <p class="lead"><%= project.shortDescription %></p>
-                        <span class="badge bg-<%= 
-                            project.status === 'completed' ? 'success' : 
-                            project.status === 'ongoing' ? 'primary' : 'warning' 
-                        %> fs-6">
-                            <%= project.status %>
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Project Content -->
-    <section class="py-5">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-8">
-                    <h2 class="mb-4">About This Project</h2>
-                    <div class="project-content">
-                        <%= project.description ? project.description.replace(/\n/g, '<br>') : 'No description available.' %>
-                    </div>
-
-                    <% if (project.gallery && project.gallery.length > 0) { %>
-                        <div class="mt-5">
-                            <h3 class="mb-4">Project Gallery</h3>
-                            <div class="row">
-                                <% project.gallery.forEach(image => { %>
-                                    <div class="col-md-4 mb-3">
-                                        <img src="/uploads/<%= image %>" alt="Project image" 
-                                             class="img-fluid rounded shadow" style="height: 200px; object-fit: cover;">
-                                    </div>
-                                <% }) %>
+    <main class="container py-5">
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Project Media - Supports both image and video -->
+                <div class="card mb-4">
+                    <div class="card-body p-0">
+                        <% if (project.video && project.video !== '') { %>
+                            <!-- Video Player -->
+                            <div class="ratio ratio-16x9">
+                                <video controls class="w-100">
+                                    <source src="/uploads/<%= project.video %>" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
                             </div>
-                        </div>
-                    <% } %>
-                </div>
-
-                <div class="col-lg-4">
-                    <div class="donation-stats">
-                        <h4 class="mb-4">Project Status</h4>
-                        
-                        <% if (project.targetAmount) { %>
-                            <div class="progress mb-3">
-                                <div class="progress-bar" role="progressbar" 
-                                     style="width: <%= Math.min((project.raisedAmount / project.targetAmount * 100), 100) %>%">
-                                </div>
-                            </div>
-                            
-                            <div class="row text-center mb-4">
-                                <div class="col-6">
-                                    <h3 class="text-primary">$<%= project.raisedAmount ? project.raisedAmount.toLocaleString() : '0' %></h3>
-                                    <p class="text-muted">Raised</p>
-                                </div>
-                                <div class="col-6">
-                                    <h3 class="text-primary">$<%= project.targetAmount.toLocaleString() %></h3>
-                                    <p class="text-muted">Target</p>
-                                </div>
-                            </div>
-                            
-                            <div class="text-center mb-4">
-                                <div class="display-4 fw-bold text-primary">
-                                    <%= Math.min(Math.round((project.raisedAmount || 0) / project.targetAmount * 100), 100) %>%
-                                </div>
-                                <p class="text-muted">Funded</p>
-                            </div>
+                        <% } else if (project.image && project.image !== 'default-project.jpg') { %>
+                            <!-- Image -->
+                            <img src="/uploads/<%= project.image %>" 
+                                 alt="<%= project.title %>" 
+                                 class="card-img-top"
+                                 style="max-height: 400px; object-fit: cover;"
+                                 onerror="this.onerror=null; this.src='/images/default-project.jpg';">
                         <% } else { %>
-                            <p class="text-muted">No funding target set for this project.</p>
+                            <!-- Default Image -->
+                            <img src="/images/default-project.jpg" 
+                                 alt="Default project image" 
+                                 class="card-img-top"
+                                 style="max-height: 400px; object-fit: cover;">
                         <% } %>
+                    </div>
+                </div>
 
-                        <div class="text-center">
-                            <a href="/donate?project=<%= project._id %>" class="btn btn-primary btn-lg w-100 mb-3">
-                                <i class="fas fa-donate me-2"></i>Donate Now
+                <h1 class="mb-3"><%= project.title %></h1>
+                
+                <div class="d-flex gap-3 mb-4">
+                    <span class="badge bg-<%= 
+                        project.status === 'completed' ? 'success' : 
+                        project.status === 'ongoing' ? 'primary' : 'warning' 
+                    %>">
+                        <%= project.status.charAt(0).toUpperCase() + project.status.slice(1) %>
+                    </span>
+                    
+                    <% if (project.isFeatured) { %>
+                        <span class="badge bg-info">Featured</span>
+                    <% } %>
+                </div>
+
+                <div class="mb-4">
+                    <h3>About this Project</h3>
+                    <p class="lead"><%= project.shortDescription %></p>
+                    <p><%= project.description %></p>
+                </div>
+
+                <% if (project.targetAmount > 0) { %>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="mb-0">Funding Progress</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress mb-3" style="height: 25px;">
+                            <div class="progress-bar" 
+                                 role="progressbar" 
+                                 style="width: <%= Math.min((project.raisedAmount / project.targetAmount * 100), 100) %>%"
+                                 aria-valuenow="<%= project.raisedAmount %>"
+                                 aria-valuemin="0"
+                                 aria-valuemax="<%= project.targetAmount %>">
+                                <%= Math.min(Math.round(project.raisedAmount / project.targetAmount * 100), 100) %>%
+                            </div>
+                        </div>
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <h5 class="text-primary">$<%= project.raisedAmount.toLocaleString() %></h5>
+                                <small>Raised</small>
+                            </div>
+                            <div class="col-md-4">
+                                <h5 class="text-success"><%= project.donors || 0 %></h5>
+                                <small>Donors</small>
+                            </div>
+                            <div class="col-md-4">
+                                <h5 class="text-info">$<%= project.targetAmount.toLocaleString() %></h5>
+                                <small>Target</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+
+                <div class="d-grid gap-2">
+                    <a href="/donate?project=<%= project._id %>" class="btn btn-primary btn-lg">
+                        <i class="fas fa-donate me-2"></i>Donate to this Project
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Project Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <strong>Status:</strong>
+                            <span class="badge bg-<%= 
+                                project.status === 'completed' ? 'success' : 
+                                project.status === 'ongoing' ? 'primary' : 'warning' 
+                            %> float-end">
+                                <%= project.status.charAt(0).toUpperCase() + project.status.slice(1) %>
+                            </span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Start Date:</strong>
+                            <span class="float-end">
+                                <%= project.startDate ? new Date(project.startDate).toLocaleDateString() : 'Not specified' %>
+                            </span>
+                        </div>
+                        
+                        <% if (project.endDate) { %>
+                        <div class="mb-3">
+                            <strong>End Date:</strong>
+                            <span class="float-end">
+                                <%= new Date(project.endDate).toLocaleDateString() %>
+                            </span>
+                        </div>
+                        <% } %>
+                        
+                        <% if (project.impact && project.impact.beneficiaries > 0) { %>
+                        <div class="mb-3">
+                            <strong>Beneficiaries:</strong>
+                            <span class="float-end">
+                                <%= project.impact.beneficiaries.toLocaleString() %>
+                            </span>
+                        </div>
+                        <% } %>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Share this Project</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex gap-2">
+                            <a href="#" class="btn btn-outline-primary btn-sm">
+                                <i class="fab fa-facebook"></i>
                             </a>
-                            <a href="/volunteer" class="btn btn-outline-primary w-100">
-                                <i class="fas fa-hands-helping me-2"></i>Volunteer
+                            <a href="#" class="btn btn-outline-info btn-sm">
+                                <i class="fab fa-twitter"></i>
+                            </a>
+                            <a href="#" class="btn btn-outline-danger btn-sm">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                            <a href="#" class="btn btn-outline-dark btn-sm">
+                                <i class="fas fa-link"></i>
                             </a>
                         </div>
                     </div>
-
-                    <% if (project.impact) { %>
-                        <div class="mt-4">
-                            <h5>Project Impact</h5>
-                            <% if (project.impact.beneficiaries) { %>
-                                <p><i class="fas fa-users text-primary me-2"></i> 
-                                   <%= project.impact.beneficiaries.toLocaleString() %> beneficiaries</p>
-                            <% } %>
-                            <% if (project.impact.locations && project.impact.locations.length > 0) { %>
-                                <p><i class="fas fa-map-marker-alt text-primary me-2"></i> 
-                                   <%= project.impact.locations.join(', ') %></p>
-                            <% } %>
-                        </div>
-                    <% } %>
                 </div>
             </div>
         </div>
-    </section>
-<% } else { %>
-    <section class="py-5">
-        <div class="container text-center">
-            <h1>Project Not Found</h1>
-            <p class="lead">The project you are looking for does not exist.</p>
-            <a href="/projects" class="btn btn-primary">Back to Projects</a>
-        </div>
-    </section>
-<% } %>
+    </main>
 
     <%- include('../partials/footer') %>
     <%- include('../partials/scripts') %>

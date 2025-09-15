@@ -1,49 +1,50 @@
 const express = require('express');
 const router = express.Router();
-const Blog = require('../models/Blog'); // Import Blog model
+const Project = require('../models/Project');
+const Blog = require('../models/Blog');
 
 // Homepage
 router.get('/', async (req, res) => {
   try {
-    const Project = require('../models/Project');
-    const Blog = require('../models/Blog');
+    let featuredProjects = [];
+    let latestBlogs = [];
     
-    const featuredProjects = await Project.find({ isFeatured: true, status: 'ongoing' })
-      .sort({ createdAt: -1 })
-      .limit(3);
+    try {
+      // Show ALL featured projects, not just ongoing ones
+      featuredProjects = await Project.find({ isFeatured: true })
+        .sort({ createdAt: -1 })
+        .limit(3)
+        .maxTimeMS(10000)
+        .catch(() => []);
+    } catch (projectError) {
+      console.log('Featured projects query failed:', projectError.message);
+      featuredProjects = [];
+    }
     
-    // Debug: Check what we're querying for
-    console.log('=== HOMEPAGE BLOG QUERY ===');
-    const publishedBlogs = await Blog.find({ status: 'published' })
-      .sort({ publishedAt: -1, createdAt: -1 })
-      .limit(3);
+    try {
+      latestBlogs = await Blog.find({ status: 'published' })
+        .sort({ publishedAt: -1, createdAt: -1 })
+        .limit(3)
+        .maxTimeMS(10000)
+        .catch(() => []);
+    } catch (blogError) {
+      console.log('Latest blogs query failed:', blogError.message);
+      latestBlogs = [];
+    }
     
-    console.log('Published blogs query result:', {
-      count: publishedBlogs.length,
-      blogs: publishedBlogs.map(blog => ({
-        title: blog.title,
-        status: blog.status,
-        id: blog._id
-      }))
-    });
-    
-    // Also check all blogs for debugging
-    const allBlogs = await Blog.find().sort({ createdAt: -1 });
-    console.log('All blogs:', {
-      count: allBlogs.length,
-      statuses: allBlogs.map(blog => blog.status)
-    });
+    console.log(`Homepage: ${featuredProjects.length} featured projects, ${latestBlogs.length} blogs`);
     
     res.render('index', {
       title: 'Home - Gelelcha Charity',
       featuredProjects,
-      latestBlogs: publishedBlogs
+      latestBlogs
     });
   } catch (error) {
     console.error('Homepage error:', error);
-    res.status(500).render('error', { 
-      title: 'Server Error',
-      message: 'Error loading homepage' 
+    res.render('index', {
+      title: 'Home - Gelelcha Charity',
+      featuredProjects: [],
+      latestBlogs: []
     });
   }
 });
