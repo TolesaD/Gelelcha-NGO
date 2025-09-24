@@ -1,32 +1,22 @@
 {
-  "name": "gelelcha-charity",
+  "name": "gelelcha-charity-client",
   "version": "1.0.0",
-  "description": "Website for Gelelcha Charitable Organization",
-  "main": "server.js",
+  "private": true,
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
-    "init-db": "node server/init-db.js",
-    "fix-db": "node server/fix-blog-posts.js",
-    "reset-admin": "node server/reset-admin.js"
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "vercel-build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "connect-flash": "^0.1.1",
-    "connect-mongo": "^4.6.0",
-    "dotenv": "^16.4.5",
-    "ejs": "^3.1.10",
-    "express": "^4.21.2",
-    "express-rate-limit": "^7.2.0",
-    "express-session": "^1.18.1",
-    "express-validator": "^7.0.1",
-    "helmet": "^7.1.0",
-    "method-override": "^3.0.0",
-    "mongoose": "^6.13.8",
-    "multer": "^1.4.5-lts.1",
-    "nodemailer": "^6.9.15"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.4.0",
+    "react-bootstrap": "^2.5.0",
+    "bootstrap": "^5.3.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.7"
+    "react-scripts": "5.0.1"
   }
 }
